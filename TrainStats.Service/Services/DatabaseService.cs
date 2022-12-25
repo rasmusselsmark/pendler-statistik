@@ -8,7 +8,7 @@ public class DatabaseService
 {
     static MySqlConnection GetDbConnection()
     {
-        var settings = TrainStats.Load();
+        var settings = Settings.Load();
         var cnn = new MySqlConnection(settings.DbConnectionString);
         cnn.Open();
 
