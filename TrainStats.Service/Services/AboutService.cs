@@ -7,6 +7,7 @@ public class AboutService
         return $@"pendler-statistik
 
 ASP.NET version {System.Environment.Version}
-{System.DateTime.Now}";
+Current time: {System.DateTime.Now}
+Next train: {TrainService.GetNextTrainTime("HH")}";
     }
 }

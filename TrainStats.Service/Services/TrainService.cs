@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Text;
 using Newtonsoft.Json.Linq;
@@ -7,6 +9,28 @@ namespace TrainStats.Service.Services;
 
 public class TrainService
 {
+    static Dictionary<string, DateTime> NextTrainTime;
+
+    public static DateTime? GetNextTrainTime(string stationId)
+    {
+        if (NextTrainTime == null)
+        {
+            return null;
+        }
+
+        return NextTrainTime[stationId];
+    }
+
+    public static void SetNextTrainTime(string stationId, DateTime value)
+    {
+        if (NextTrainTime == null)
+        {
+            NextTrainTime = new Dictionary<string, DateTime>();
+        }
+
+        NextTrainTime[stationId] = value;
+    }
+
     public static async Task<List<TrainData>> GetTrainsAsync(string stationId)
     {
         using var ws = new ClientWebSocket();
@@ -46,12 +70,22 @@ public class TrainService
 
     /// <summary>
     /// Fetches current train data and stores to database, based on unique train id.
+    /// Store departure time of next train so we can bail out early, if we're
     /// </summary>
     /// <param name="stationId">Station id, typically 2 characters. E.g. 'HH'.</param>
     public static async Task<int> FetchAndStoreAsync(string stationId)
     {
-        var trains = await GetTrainsAsync(stationId);
-        return DatabaseService.AddOrUpdate(stationId, trains);
+        // no need to query/store in database if we already have queried data for next train
+        var nextTrain = GetNextTrainTime(stationId);
+        if (nextTrain == null || System.DateTime.Now > nextTrain.Value.Add(TimeSpan.FromMinutes(-1)))
+        {
+            var trains = await GetTrainsAsync(stationId);
+            SetNextTrainTime(stationId, trains.First().ScheduleTime);
+
+            return DatabaseService.AddOrUpdate(stationId, trains);
+        }
+
+        return -1; // no need to query data
     }
 
     static string StreamToString(Stream stream)
