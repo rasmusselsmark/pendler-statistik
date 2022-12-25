@@ -10,7 +10,7 @@ public class TrainData
     /// Unique id based on date and train id
     /// </summary>
     public string Id { get; set; }
-    public int TrainId  { get; set; }
+    public int TrainId { get; set; }
     public DateTime ScheduleTime { get; set; }
     public string OriginStationId { get; set; }
     public string DestinationStationId { get; set; }
@@ -18,6 +18,8 @@ public class TrainData
     public DateTime? EstimatedTimeDeparture { get; set; }
     public DateTime? DelayTime { get; set; }
     public TimeSpan Delay { get; set; }
+    public int TrackCurrent { get; set; }
+    public int? TrackOriginal { get; set; }
 
     public TrainData(JToken jsonData)
     {
@@ -48,6 +50,12 @@ public class TrainData
                 CultureInfo.InvariantCulture);
 
             Delay = DelayTime == null ? TimeSpan.Zero : DelayTime.Value - ScheduleTime;
+        }
+
+        TrackCurrent = jsonData["TrackCurrent"]!.Value<int>()!;
+        if (!string.IsNullOrEmpty(jsonData["TrackOriginal"]!.Value<string>()))
+        {
+            TrackOriginal = jsonData["TrackOriginal"]!.Value<int>()!;
         }
 
         // calculate unique database id, so we keep one row per train/day
