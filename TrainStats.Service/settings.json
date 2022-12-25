@@ -1,0 +1,5 @@
+{
+  // no production secrets locally!
+
+  "DbConnectionString": "Server=127.0.0.1; database=trains; UID=root; password=password"
+}

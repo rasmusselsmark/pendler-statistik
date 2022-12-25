@@ -48,10 +48,10 @@ public class TrainService
     /// Fetches current train data and stores to database, based on unique train id.
     /// </summary>
     /// <param name="stationId">Station id, typically 2 characters. E.g. 'HH'.</param>
-    public static async Task FetchAndStoreAsync(string stationId)
+    public static async Task<int> FetchAndStoreAsync(string stationId)
     {
         var trains = await GetTrainsAsync(stationId);
-        DatabaseService.AddOrUpdate(stationId, trains);
+        return DatabaseService.AddOrUpdate(stationId, trains);
     }
 
     static string StreamToString(Stream stream)
