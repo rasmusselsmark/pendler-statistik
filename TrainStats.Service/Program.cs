@@ -39,4 +39,11 @@ app.MapGet(
         return DatabaseService.QueryTracks(stationId);
     });
 
+app.MapGet(
+    "/query/tracks/detailed/{stationId:alpha}",
+    (string stationId) =>
+    {
+        return DatabaseService.QueryTracksDetailed(stationId);
+    });
+
 app.Run();
