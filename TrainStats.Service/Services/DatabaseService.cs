@@ -22,10 +22,10 @@ public class DatabaseService
         foreach (var train in trains)
         {
             var sql =
-                "INSERT INTO train_stats (id, station_id, train_id, origin_station_id, destination_station_id, schedule_time, is_cancelled, estimated_time_departure, delay_time, delay, track_current, track_original, train_arrived, train_departed) " +
-                "VALUES (?id, ?station_id, ?train_id, ?origin_station_id, ?destination_station_id, ?schedule_time, ?is_cancelled, ?estimated_time_departure, ?delay_time, ?delay, ?track_current, ?track_original, ?train_arrived, ?train_departed) " +
+                "INSERT INTO train_stats (id, station_id, train_id, origin_station_id, destination_station_id, schedule_time, is_cancelled, estimated_time_departure, delay_time, train_arrived, train_departed, delay, track_current, track_original) " +
+                "VALUES (?id, ?station_id, ?train_id, ?origin_station_id, ?destination_station_id, ?schedule_time, ?is_cancelled, ?estimated_time_departure, ?delay_time, ?train_arrived, ?train_departed, ?delay, ?track_current, ?track_original) " +
                 "ON DUPLICATE KEY UPDATE station_id=?station_id, train_id=?train_id, origin_station_id=?origin_station_id, destination_station_id=?destination_station_id, schedule_time=?schedule_time, is_cancelled=?is_cancelled, " +
-                "estimated_time_departure=?estimated_time_departure, delay_time=?delay_time, delay=?delay, track_current=?track_current, track_original=?track_original, train_arrived=?train_arrived, train_departed=?train_departed";
+                "estimated_time_departure=?estimated_time_departure, delay_time=?delay_time, train_arrived=?train_arrived, train_departed=?train_departed, delay=?delay, track_current=?track_current, track_original=?track_original";
 
             var cmd = cnn.CreateCommand();
             cmd.CommandText = sql;
@@ -38,11 +38,11 @@ public class DatabaseService
             cmd.Parameters.AddWithValue("?is_cancelled", train.IsCancelled);
             cmd.Parameters.AddWithValue("?estimated_time_departure", train.EstimatedTimeDeparture);
             cmd.Parameters.AddWithValue("?delay_time", train.DelayTime);
+            cmd.Parameters.AddWithValue("?train_arrived", train.TrainArrived);
+            cmd.Parameters.AddWithValue("?train_departed", train.TrainDeparted);
             cmd.Parameters.AddWithValue("?delay", train.Delay);
             cmd.Parameters.AddWithValue("?track_current", train.TrackCurrent);
             cmd.Parameters.AddWithValue("?track_original", train.TrackOriginal);
-            cmd.Parameters.AddWithValue("?train_arrived", train.TrainArrived);
-            cmd.Parameters.AddWithValue("?train_departed", train.TrainDeparted);
             cmd.ExecuteNonQuery();
         }
 
@@ -68,11 +68,11 @@ public class DatabaseService
   is_cancelled TINYINT NOT NULL,
   estimated_time_departure DATETIME NULL,
   delay_time DATETIME NULL,
+  train_arrived DATETIME NULL,
+  train_departed DATETIME NULL,
   delay TIME NULL,
   track_current INT NOT NULL,
   track_original INT NULL,
-  train_arrived DATETIME NULL,
-  train_departed DATETIME NULL,
   PRIMARY KEY (id),
   UNIQUE INDEX id_UNIQUE (id ASC),
   INDEX schedule_time (schedule_time ASC));";
