@@ -32,4 +32,11 @@ app.MapGet(
         return DatabaseService.QueryDelays(stationId);
     });
 
+app.MapGet(
+    "/query/tracks/{stationId:alpha}",
+    (string stationId) =>
+    {
+        return DatabaseService.QueryTracks(stationId);
+    });
+
 app.Run();

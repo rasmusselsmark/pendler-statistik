@@ -62,11 +62,11 @@ public class DatabaseService
 @"SELECT
     destination_station_id,
     COUNT(*) as count_delayed,
-    (SELECT COUNT(*) FROM train_stats WHERE (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY))) as count_total,
+    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW()) as count_total,
     IFNULL(AVG(TIME_TO_SEC(delay)), 0) as average_delay_seconds,
     IFNULL(MAX(delay), '00:00:00') as max_delay
 FROM train_stats
-WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND delay > 0
+WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND delay > 0
 GROUP BY destination_station_id";
 
         using var cnn = GetDbConnection();
@@ -81,13 +81,10 @@ GROUP BY destination_station_id";
             var delayed = reader.GetInt64("count_delayed");
             var total = reader.GetInt64("count_total");
             var avg = reader.GetDouble("average_delay_seconds");
-
-            Console.WriteLine($"QueryDelays 1 - {avg}");
             var max = DateTime.ParseExact(
                 reader.GetString("max_delay"),
                 "HH:mm:ss",
                 CultureInfo.InvariantCulture);
-            Console.WriteLine($"QueryDelays 2 - {max}");
 
             if (total != 0)
             {
@@ -95,6 +92,44 @@ GROUP BY destination_station_id";
                 sb.AppendLine(
                     $"Retning {destination}: {delayed,3:N0} / {total,4:N0} = {percent,5:N2}%, gns. {TimeSpan.FromSeconds(avg),5:m\\:ss}, max. {max,5:m\\:ss} minutter");
             }
+        }
+
+        reader.Close();
+        cnn.Close();
+
+        return sb.ToString();
+    }
+
+    public static string QueryTracks(string stationId)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Sporfordeling seneste 30 dage:");
+        sb.AppendLine();
+
+        var sql =
+@"SELECT
+	track_current,
+    destination_station_id,
+    COUNT(*) as count_trains
+FROM train_stats
+WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW()
+GROUP BY track_current, destination_station_id
+ORDER BY track_current, destination_station_id";
+
+        using var cnn = GetDbConnection();
+        using var cmd = cnn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("?station_id", stationId);
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var track = reader.GetInt64("track_current");
+            var destination = reader.GetString("destination_station_id");
+            var count = reader.GetInt64("count_trains");
+
+            sb.AppendLine(
+                $"Spor {track}, retning {destination}: {count,3:N0}");
         }
 
         reader.Close();
