@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text;
 using MySql.Data.MySqlClient;
 using TrainStats.Service.Models;
@@ -59,10 +60,11 @@ public class DatabaseService
 
         var sql =
 @"SELECT
-	destination_station_id,
+    destination_station_id,
     COUNT(*) as count_delayed,
     (SELECT COUNT(*) FROM train_stats WHERE (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY))) as count_total,
-    IFNULL(AVG(delay), 0) as average_delay_seconds
+    IFNULL(AVG(TIME_TO_SEC(delay)), 0) as average_delay_seconds,
+    IFNULL(MAX(delay), '00:00:00') as max_delay
 FROM train_stats
 WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND delay > 0
 GROUP BY destination_station_id";
@@ -80,11 +82,18 @@ GROUP BY destination_station_id";
             var total = reader.GetInt64("count_total");
             var avg = reader.GetDouble("average_delay_seconds");
 
+            Console.WriteLine($"QueryDelays 1 - {avg}");
+            var max = DateTime.ParseExact(
+                reader.GetString("max_delay"),
+                "HH:mm:ss",
+                CultureInfo.InvariantCulture);
+            Console.WriteLine($"QueryDelays 2 - {max}");
+
             if (total != 0)
             {
                 var percent = (delayed * 100.0 / total);
                 sb.AppendLine(
-                    $"Retning {destination}: {delayed,3:N0} / {total,4:N0} = {percent,5:N2}%, gns. {TimeSpan.FromSeconds(avg),5:m\\:ss} minutter");
+                    $"Retning {destination}: {delayed,3:N0} / {total,4:N0} = {percent,5:N2}%, gns. {TimeSpan.FromSeconds(avg),5:m\\:ss}, max. {max,5:m\\:ss} minutter");
             }
         }
 
