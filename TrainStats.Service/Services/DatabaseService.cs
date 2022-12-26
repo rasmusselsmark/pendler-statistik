@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using MySql.Data.MySqlClient;
 using TrainStats.Service.Models;
 
@@ -27,7 +28,7 @@ public class DatabaseService
                 "ON DUPLICATE KEY UPDATE station_id=?station_id, train_id=?train_id, origin_station_id=?origin_station_id, destination_station_id=?destination_station_id, schedule_time=?schedule_time, is_cancelled=?is_cancelled, " +
                 "estimated_time_departure=?estimated_time_departure, delay_time=?delay_time, train_arrived=?train_arrived, train_departed=?train_departed, delay=?delay, track_current=?track_current, track_original=?track_original";
 
-            var cmd = cnn.CreateCommand();
+            using var cmd = cnn.CreateCommand();
             cmd.CommandText = sql;
             cmd.Parameters.AddWithValue("?id", train.Id);
             cmd.Parameters.AddWithValue("?station_id", stationId);
@@ -50,10 +51,47 @@ public class DatabaseService
         return trains.Count();
     }
 
-    public static List<TrainData> Query(string stationId)
+    public static string QueryDelays(string stationId)
     {
-        // TODO: query for statistics for station, e.g. for last month
-        return new List<TrainData>();
+        var sb = new StringBuilder();
+        sb.AppendLine("Forsinkede tog seneste 30 dage:");
+        sb.AppendLine();
+
+        var sql =
+@"SELECT
+	destination_station_id,
+    COUNT(*) as count_delayed,
+    (SELECT COUNT(*) FROM train_stats WHERE (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY))) as count_total,
+    IFNULL(AVG(delay), 0) as average_delay_seconds
+FROM train_stats
+WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND delay > 0
+GROUP BY destination_station_id";
+
+        using var cnn = GetDbConnection();
+        using var cmd = cnn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("?station_id", stationId);
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var destination = reader.GetString("destination_station_id");
+            var delayed = reader.GetInt64("count_delayed");
+            var total = reader.GetInt64("count_total");
+            var avg = reader.GetDouble("average_delay_seconds");
+
+            if (total != 0)
+            {
+                var percent = (delayed * 100.0 / total);
+                sb.AppendLine(
+                    $"Retning {destination}: {delayed,3:N0} / {total,4:N0} = {percent,5:N2}%, gns. {TimeSpan.FromSeconds(avg),5:m\\:ss} minutter");
+            }
+        }
+
+        reader.Close();
+        cnn.Close();
+
+        return sb.ToString();
     }
 
     public static string Install()
@@ -75,7 +113,7 @@ public class DatabaseService
   track_original INT NULL,
   PRIMARY KEY (id),
   UNIQUE INDEX id_UNIQUE (id ASC),
-  INDEX schedule_time (schedule_time ASC));";
+  INDEX idx_station_time (station_id ASC, schedule_time ASC) VISIBLE);";
 
         using var cnn = GetDbConnection();
         var cmd = cnn.CreateCommand();

@@ -26,10 +26,10 @@ app.MapGet(
     });
 
 app.MapGet(
-    "/query/{stationId:alpha}",
+    "/query/delays/{stationId:alpha}",
     (string stationId) =>
     {
-        return DatabaseService.Query(stationId);
+        return DatabaseService.QueryDelays(stationId);
     });
 
 app.Run();
