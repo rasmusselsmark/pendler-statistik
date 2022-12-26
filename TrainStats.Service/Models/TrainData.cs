@@ -10,6 +10,7 @@ public class TrainData
     /// Unique id based on date and train id
     /// </summary>
     public string Id { get; set; }
+
     public int TrainId { get; set; }
     public DateTime ScheduleTime { get; set; }
     public string OriginStationId { get; set; }
@@ -20,6 +21,8 @@ public class TrainData
     public TimeSpan Delay { get; set; }
     public int TrackCurrent { get; set; }
     public int? TrackOriginal { get; set; }
+    public DateTime? TrainArrived { get; set; }
+    public DateTime? TrainDeparted { get; set; }
 
     public TrainData(JToken jsonData)
     {
@@ -31,24 +34,16 @@ public class TrainData
         OriginStationId = jsonData["Routes"].First()["OriginStationId"]!.Value<string>();
         DestinationStationId = jsonData["Routes"].First()["DestinationStationId"]!.Value<string>();
         IsCancelled = jsonData["IsCancelled"]!.Value<bool>();
-        EstimatedTimeDeparture = DateTime.ParseExact(
-            jsonData["EstimatedTimeDeparture"]!.Value<string>()!,
-            "dd-MM-yyyy HH:mm:ss",
-            CultureInfo.InvariantCulture);
+        EstimatedTimeDeparture = ParseJsonDateTime(jsonData["EstimatedTimeDeparture"]);
 
-        if (EstimatedTimeDeparture.Value.Year == 1)
+        if (EstimatedTimeDeparture == null)
         {
-            EstimatedTimeDeparture = null;
             DelayTime = null;
             Delay = TimeSpan.Zero;
         }
         else
         {
-            DelayTime = DateTime.ParseExact(
-                jsonData["DelayTime"]!.Value<string>()!,
-                "dd-MM-yyyy HH:mm:ss",
-                CultureInfo.InvariantCulture);
-
+            DelayTime = ParseJsonDateTime(jsonData["DelayTime"]);
             Delay = DelayTime == null ? TimeSpan.Zero : DelayTime.Value - ScheduleTime;
         }
 
@@ -58,7 +53,32 @@ public class TrainData
             TrackOriginal = jsonData["TrackOriginal"]!.Value<int>()!;
         }
 
+        TrainArrived = ParseJsonDateTime(jsonData["TrainArrived"]);
+        TrainDeparted = ParseJsonDateTime(jsonData["TrainDeparted"]);
+
         // calculate unique database id, so we keep one row per train/day
         Id = $"{ScheduleTime:yyyyMMdd}-{TrainId}";
+    }
+
+    DateTime? ParseJsonDateTime(JToken token)
+    {
+        if (token == null)
+        {
+            return null;
+        }
+
+        var s = token.Value<string>();
+        if (s == null)
+        {
+            return null;
+        }
+
+        var value = DateTime.ParseExact(s, "dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+        if (value.Year == 1)
+        {
+            return null;
+        }
+
+        return value;
     }
 }

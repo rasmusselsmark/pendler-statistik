@@ -1,13 +1,24 @@
+using System.Text;
+
 namespace TrainStats.Service.Services;
 
 public class AboutService
 {
     public static string About()
     {
-        return $@"pendler-statistik
+        var sb = new StringBuilder();
+        sb.AppendLine("pendler-statistik");
+        sb.AppendLine();
+        sb.AppendLine($"ASP.NET version {System.Environment.Version}");
+        sb.AppendLine($"Current time: {System.DateTime.Now}");
+        sb.AppendLine();
+        sb.AppendLine("Next train(s):");
 
-ASP.NET version {System.Environment.Version}
-Current time: {System.DateTime.Now}
-Next train: {TrainService.GetNextTrainTime("HH")}";
+        foreach (var key in TrainService.NextTrainTimes.Keys)
+        {
+            sb.AppendLine($"{key}: {TrainService.NextTrainTimes[key]}");
+        }
+
+        return sb.ToString();
     }
 }

@@ -9,26 +9,18 @@ namespace TrainStats.Service.Services;
 
 public class TrainService
 {
-    static Dictionary<string, DateTime> NextTrainTime;
+    static Dictionary<string, DateTime> m_NextTrainTimes = null;
 
-    public static DateTime? GetNextTrainTime(string stationId)
+    public static Dictionary<string, DateTime> NextTrainTimes
     {
-        if (NextTrainTime == null)
+        get
         {
-            return null;
+            if (m_NextTrainTimes == null)
+            {
+                m_NextTrainTimes = new Dictionary<string, DateTime>();
+            }
+            return m_NextTrainTimes;
         }
-
-        return NextTrainTime[stationId];
-    }
-
-    public static void SetNextTrainTime(string stationId, DateTime value)
-    {
-        if (NextTrainTime == null)
-        {
-            NextTrainTime = new Dictionary<string, DateTime>();
-        }
-
-        NextTrainTime[stationId] = value;
     }
 
     public static async Task<List<TrainData>> GetTrainsAsync(string stationId)
@@ -76,11 +68,13 @@ public class TrainService
     public static async Task<int> FetchAndStoreAsync(string stationId)
     {
         // no need to query/store in database if we already have queried data for next train
-        var nextTrain = GetNextTrainTime(stationId);
-        if (nextTrain == null || System.DateTime.Now > nextTrain.Value.Add(TimeSpan.FromMinutes(-1)))
+        if (!NextTrainTimes.TryGetValue(stationId, out var nextTrain)
+            || System.DateTime.Now > nextTrain.Add(TimeSpan.FromMinutes(-1)))
         {
             var trains = await GetTrainsAsync(stationId);
-            SetNextTrainTime(stationId, trains.First().ScheduleTime);
+
+            // departed trains still shows up a few mins after departure, but no need to query those again
+            NextTrainTimes[stationId] = trains.First(t => !t.IsCancelled && t.TrainDeparted == null).ScheduleTime;
 
             return DatabaseService.AddOrUpdate(stationId, trains);
         }
