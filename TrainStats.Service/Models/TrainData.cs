@@ -31,8 +31,8 @@ public class TrainData
             jsonData["ScheduleTime"]!.Value<string>()!,
             "dd-MM-yyyy HH:mm:ss",
             CultureInfo.InvariantCulture);
-        OriginStationId = jsonData["Routes"].First()["OriginStationId"]!.Value<string>();
-        DestinationStationId = jsonData["Routes"].First()["DestinationStationId"]!.Value<string>();
+        OriginStationId = jsonData["Routes"]!.First()["OriginStationId"]!.Value<string>()!;
+        DestinationStationId = jsonData["Routes"]!.First()["DestinationStationId"]!.Value<string>()!;
         IsCancelled = jsonData["IsCancelled"]!.Value<bool>();
         EstimatedTimeDeparture = ParseJsonDateTime(jsonData["EstimatedTimeDeparture"]);
 
@@ -60,7 +60,7 @@ public class TrainData
         Id = $"{ScheduleTime:yyyyMMdd}-{TrainId}";
     }
 
-    DateTime? ParseJsonDateTime(JToken token)
+    DateTime? ParseJsonDateTime(JToken? token)
     {
         if (token == null)
         {

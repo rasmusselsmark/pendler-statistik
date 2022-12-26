@@ -27,7 +27,7 @@ app.MapGet(
 
 app.MapGet(
     "/query/{stationId:alpha}",
-    async (string stationId) =>
+    (string stationId) =>
     {
         return DatabaseService.Query(stationId);
     });

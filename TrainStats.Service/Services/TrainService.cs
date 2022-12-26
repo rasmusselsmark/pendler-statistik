@@ -9,19 +9,7 @@ namespace TrainStats.Service.Services;
 
 public class TrainService
 {
-    static Dictionary<string, DateTime> m_NextTrainTimes = null;
-
-    public static Dictionary<string, DateTime> NextTrainTimes
-    {
-        get
-        {
-            if (m_NextTrainTimes == null)
-            {
-                m_NextTrainTimes = new Dictionary<string, DateTime>();
-            }
-            return m_NextTrainTimes;
-        }
-    }
+    public static Dictionary<string, DateTime> NextTrainTimes = new Dictionary<string, DateTime>();
 
     public static async Task<List<TrainData>> GetTrainsAsync(string stationId)
     {
@@ -44,7 +32,6 @@ public class TrainService
             else
             {
                 throw new Exception($"WS received zero: {result.Count}, {ws.State}");
-                break;
             }
         } while (!result.EndOfMessage); // check end of message mark
 

@@ -53,7 +53,7 @@ public class DatabaseService
     public static List<TrainData> Query(string stationId)
     {
         // TODO: query for statistics for station, e.g. for last month
-        return null;
+        return new List<TrainData>();
     }
 
     public static string Install()
