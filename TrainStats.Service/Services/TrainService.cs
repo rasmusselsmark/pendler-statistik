@@ -61,7 +61,8 @@ public class TrainService
             var trains = await GetTrainsAsync(stationId);
 
             // departed trains still shows up a few mins after departure, but no need to query those again
-            NextTrainTimes[stationId] = trains.First(t => !t.IsCancelled && t.TrainDeparted == null).ScheduleTime;
+            // we include cancelled trains, as there could be replacement trains
+            NextTrainTimes[stationId] = trains.First(t.TrainDeparted == null).ScheduleTime;
 
             return DatabaseService.AddOrUpdate(stationId, trains);
         }
