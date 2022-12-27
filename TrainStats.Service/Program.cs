@@ -33,6 +33,13 @@ app.MapGet(
     });
 
 app.MapGet(
+    "/query/cancellations/{stationId:alpha}",
+    (string stationId) =>
+    {
+        return DatabaseService.QueryCancellations(stationId);
+    });
+
+app.MapGet(
     "/query/tracks/{stationId:alpha}",
     (string stationId) =>
     {

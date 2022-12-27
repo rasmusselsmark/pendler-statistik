@@ -110,6 +110,57 @@ GROUP BY destination_station_id";
         return sb.ToString();
     }
 
+    public static string QueryCancellations(string stationId)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Aflyste tog seneste 30 dage:");
+        sb.AppendLine();
+
+        var sql =
+@"SELECT
+    destination_station_id as dest,
+    COUNT(*) as count_cancelled,
+    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND destination_station_id = dest) as count_dest_total,
+    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW()) as count_total
+FROM train_stats
+WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND is_cancelled
+GROUP BY destination_station_id";
+
+        using var cnn = GetDbConnection();
+        using var cmd = cnn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("?station_id", stationId);
+
+        var total = 0d;
+        var sumCancelled = 0d;
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var destination = reader.GetString("dest");
+            var cancelled = reader.GetInt64("count_cancelled");
+            sumCancelled += cancelled;
+            var totalForDestination = reader.GetInt64("count_dest_total");
+            total = reader.GetInt64("count_total");
+
+            if (totalForDestination != 0)
+            {
+                var percent = (cancelled * 100.0 / totalForDestination);
+                sb.AppendLine(
+                    $"Retning {destination,-3}: {cancelled,3:N0} / {totalForDestination,4:N0} = {percent,5:N2}%");
+            }
+        }
+
+        reader.Close();
+        cnn.Close();
+
+        sb.AppendLine();
+        sb.AppendLine(
+            $"I alt      : {sumCancelled,3:N0} / {total,4:N0} = {(sumCancelled * 100.0 / total),5:N2}%");
+
+        return sb.ToString();
+    }
+
     public static string QueryTracks(string stationId)
     {
         var sb = new StringBuilder();
