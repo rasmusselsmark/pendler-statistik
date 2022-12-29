@@ -62,13 +62,14 @@ public class DatabaseService
 @"SELECT
     destination_station_id as dest,
     COUNT(*) as count_delayed,
-    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND destination_station_id = dest) as count_dest_total,
-    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW()) as count_total,
+    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND destination_station_id = dest AND NOT is_cancelled) as count_dest_total,
+    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND NOT is_cancelled) as count_total,
     IFNULL(AVG(TIME_TO_SEC(delay)), 0) as average_delay_seconds,
     IFNULL(MAX(delay), '00:00:00') as max_delay
 FROM train_stats
-WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND delay > 0
-GROUP BY destination_station_id";
+WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND delay > 0 AND NOT is_cancelled
+GROUP BY destination_station_id
+ORDER BY destination_station_id";
 
         using var cnn = GetDbConnection();
         using var cmd = cnn.CreateCommand();
@@ -124,7 +125,8 @@ GROUP BY destination_station_id";
     (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW()) as count_total
 FROM train_stats
 WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND is_cancelled
-GROUP BY destination_station_id";
+GROUP BY destination_station_id
+ORDER BY destination_station_id";
 
         using var cnn = GetDbConnection();
         using var cmd = cnn.CreateCommand();
@@ -171,9 +173,9 @@ GROUP BY destination_station_id";
 @"SELECT
 	track_current,
     COUNT(*) as count_trains,
-    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW()) as count_total
+    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND NOT is_cancelled) as count_total
 FROM train_stats
-WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW()
+WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW() AND NOT is_cancelled
 GROUP BY track_current
 ORDER BY track_current";
 
@@ -212,7 +214,7 @@ ORDER BY track_current";
     destination_station_id,
     COUNT(*) as count_trains
 FROM train_stats
-WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW()
+WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW() AND NOT is_cancelled
 GROUP BY track_current, destination_station_id
 ORDER BY track_current, destination_station_id";
 

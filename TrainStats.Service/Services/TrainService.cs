@@ -62,7 +62,7 @@ public class TrainService
 
             // departed trains still shows up a few mins after departure, but no need to query those again
             // we include cancelled trains, as there could be replacement trains
-            NextTrainTimes[stationId] = trains.First(t.TrainDeparted == null).ScheduleTime;
+            NextTrainTimes[stationId] = trains.First(t => t.TrainDeparted == null).ScheduleTime;
 
             return DatabaseService.AddOrUpdate(stationId, trains);
         }
