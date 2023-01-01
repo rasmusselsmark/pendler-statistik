@@ -17,7 +17,7 @@ public class DatabaseService
         return cnn;
     }
 
-    public static int AddOrUpdate(string stationId, List<TrainData> trains)
+    public static int AddOrUpdate(List<TrainData> trains)
     {
         using var cnn = GetDbConnection();
 
@@ -32,7 +32,7 @@ public class DatabaseService
             using var cmd = cnn.CreateCommand();
             cmd.CommandText = sql;
             cmd.Parameters.AddWithValue("?id", train.Id);
-            cmd.Parameters.AddWithValue("?station_id", stationId);
+            cmd.Parameters.AddWithValue("?station_id", train.StationId);
             cmd.Parameters.AddWithValue("?train_id", train.TrainId);
             cmd.Parameters.AddWithValue("?origin_station_id", train.OriginStationId);
             cmd.Parameters.AddWithValue("?destination_station_id", train.DestinationStationId);
@@ -243,7 +243,7 @@ ORDER BY track_current, destination_station_id";
     public static string Install()
     {
         var sql = @"CREATE TABLE train_stats (
-  id VARCHAR(20) NOT NULL,
+  id VARCHAR(25) NOT NULL,
   station_id VARCHAR(5) NOT NULL,
   train_id INT NOT NULL,
   origin_station_id VARCHAR(5) NOT NULL,

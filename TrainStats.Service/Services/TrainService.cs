@@ -41,7 +41,7 @@ public class TrainService
         var trains = new List<TrainData>();
         foreach (var train in jsonData["data"]!["Trains"]!)
         {
-            trains.Add(new TrainStats.Service.Models.TrainData(train));
+            trains.Add(new TrainStats.Service.Models.TrainData(train, stationId));
         }
 
         return trains;
@@ -64,7 +64,7 @@ public class TrainService
             // we include cancelled trains, as there could be replacement trains
             NextTrainTimes[stationId] = trains.First(t => t.TrainDeparted == null).ScheduleTime;
 
-            return DatabaseService.AddOrUpdate(stationId, trains);
+            return DatabaseService.AddOrUpdate(trains);
         }
 
         return -1; // no need to query data

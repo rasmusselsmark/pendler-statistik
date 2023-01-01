@@ -12,6 +12,7 @@ public class TrainData
     public string Id { get; set; }
 
     public int TrainId { get; set; }
+    public string StationId { get; set; }
     public DateTime ScheduleTime { get; set; }
     public string OriginStationId { get; set; }
     public string DestinationStationId { get; set; }
@@ -24,9 +25,10 @@ public class TrainData
     public DateTime? TrainArrived { get; set; }
     public DateTime? TrainDeparted { get; set; }
 
-    public TrainData(JToken jsonData)
+    public TrainData(JToken jsonData, string stationId)
     {
         TrainId = jsonData["TrainId"]!.Value<int>()!;
+        StationId = stationId;
         ScheduleTime = DateTime.ParseExact(
             jsonData["ScheduleTime"]!.Value<string>()!,
             "dd-MM-yyyy HH:mm:ss",
@@ -57,7 +59,7 @@ public class TrainData
         TrainDeparted = ParseJsonDateTime(jsonData["TrainDeparted"]);
 
         // calculate unique database id, so we keep one row per train/day
-        Id = $"{ScheduleTime:yyyyMMdd}-{TrainId}";
+        Id = $"{StationId}-{ScheduleTime:yyyyMMdd}-{TrainId}";
     }
 
     DateTime? ParseJsonDateTime(JToken? token)
