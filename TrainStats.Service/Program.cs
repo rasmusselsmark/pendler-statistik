@@ -3,54 +3,36 @@ using TrainStats.Service.Services;
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
-// todo: remove when out of development
-app.UseDeveloperExceptionPage();
-app.MapGet("/error", () => { throw new System.Exception("Error"); });
+// ONLY ENABLE IN DEVELOPMENT
+// app.UseDeveloperExceptionPage();
+// app.MapGet("/error", () => { throw new Exception("Error"); });
 
 app.MapGet("/", () => "Se https://github.com/rasmusselsmark/pendler-statistik for mere information");
-app.MapGet("/about", () => AboutService.About());
-app.MapGet("/install", () => DatabaseService.Install());
+app.MapGet("/about", AboutService.About);
+app.MapGet("/install", DatabaseService.Install);
 
 app.MapGet(
     "/trains/{stationId:alpha}",
-    async (string stationId) =>
-    {
-        return await TrainService.GetTrainsAsync(stationId);
-    });
+    async (string stationId) => await TrainService.GetTrainsAsync(stationId));
 
 app.MapGet(
     "/fetch/{stationId:alpha}",
-    async (string stationId) =>
-    {
-        return await TrainService.FetchAndStoreAsync(stationId);
-    });
+    async (string stationId) => await TrainService.FetchAndStoreAsync(stationId));
 
 app.MapGet(
     "/query/delays/{stationId:alpha}",
-    (string stationId) =>
-    {
-        return DatabaseService.QueryDelays(stationId);
-    });
+    DatabaseService.QueryDelays);
 
 app.MapGet(
     "/query/cancellations/{stationId:alpha}",
-    (string stationId) =>
-    {
-        return DatabaseService.QueryCancellations(stationId);
-    });
+    DatabaseService.QueryCancellations);
 
 app.MapGet(
     "/query/tracks/{stationId:alpha}",
-    (string stationId) =>
-    {
-        return DatabaseService.QueryTracks(stationId);
-    });
+    DatabaseService.QueryTracks);
 
 app.MapGet(
     "/query/tracks/detailed/{stationId:alpha}",
-    (string stationId) =>
-    {
-        return DatabaseService.QueryTracksDetailed(stationId);
-    });
+    DatabaseService.QueryTracksDetailed);
 
 app.Run();

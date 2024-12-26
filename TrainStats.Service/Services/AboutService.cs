@@ -2,15 +2,15 @@ using System.Text;
 
 namespace TrainStats.Service.Services;
 
-public class AboutService
+public static class AboutService
 {
     public static string About()
     {
         var sb = new StringBuilder();
         sb.AppendLine("pendler-statistik");
         sb.AppendLine();
-        sb.AppendLine($"ASP.NET version {System.Environment.Version}");
-        sb.AppendLine($"Current time: {System.DateTime.Now}");
+        sb.AppendLine($"ASP.NET version {Environment.Version}");
+        sb.AppendLine($"Current time: {DateTime.Now}");
         sb.AppendLine();
         sb.AppendLine("Next train(s):");
 

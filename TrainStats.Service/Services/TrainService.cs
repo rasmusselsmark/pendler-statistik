@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Text;
 using Newtonsoft.Json.Linq;
@@ -7,9 +5,9 @@ using TrainStats.Service.Models;
 
 namespace TrainStats.Service.Services;
 
-public class TrainService
+public static class TrainService
 {
-    public static Dictionary<string, DateTime> NextTrainTimes = new Dictionary<string, DateTime>();
+    public static readonly Dictionary<string, DateTime> NextTrainTimes = new();
 
     public static async Task<List<TrainData>> GetTrainsAsync(string stationId)
     {
@@ -38,13 +36,7 @@ public class TrainService
         var json = StreamToString(memStream);
         var jsonData = JObject.Parse(json);
 
-        var trains = new List<TrainData>();
-        foreach (var train in jsonData["data"]!["Trains"]!)
-        {
-            trains.Add(new TrainStats.Service.Models.TrainData(train, stationId));
-        }
-
-        return trains;
+        return jsonData["data"]!["Trains"]!.Select(train => new TrainData(train, stationId)).ToList();
     }
 
     /// <summary>
@@ -55,25 +47,25 @@ public class TrainService
     public static async Task<int> FetchAndStoreAsync(string stationId)
     {
         // no need to query/store in database if we already have queried data for next train
-        if (!NextTrainTimes.TryGetValue(stationId, out var nextTrain)
-            || System.DateTime.Now > nextTrain.Add(TimeSpan.FromMinutes(-1)))
+        if (NextTrainTimes.TryGetValue(stationId, out var nextTrain)
+            && DateTime.Now <= nextTrain.Add(TimeSpan.FromMinutes(-1)))
         {
-            var trains = await GetTrainsAsync(stationId);
-
-            // departed trains still shows up a few mins after departure, but no need to query those again
-            // we include cancelled trains, as there could be replacement trains
-            NextTrainTimes[stationId] = trains.First(t => t.TrainDeparted == null).ScheduleTime;
-
-            return DatabaseService.AddOrUpdate(trains);
+            return -1; // no need to query data
         }
 
-        return -1; // no need to query data
+        var trains = await GetTrainsAsync(stationId);
+
+        // departed trains still shows up a few mins after departure, but no need to query those again
+        // we include cancelled trains, as there could be replacement trains
+        NextTrainTimes[stationId] = trains.First(t => t.TrainDeparted == null).ScheduleTime;
+
+        return DatabaseService.AddOrUpdate(trains);
     }
 
-    static string StreamToString(Stream stream)
+    private static string StreamToString(Stream stream)
     {
         stream.Position = 0;
-        using StreamReader reader = new StreamReader(stream, Encoding.UTF8);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();
     }
 }

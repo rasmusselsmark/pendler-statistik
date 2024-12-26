@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Text;
 using MySql.Data.MySqlClient;
@@ -6,9 +5,9 @@ using TrainStats.Service.Models;
 
 namespace TrainStats.Service.Services;
 
-public class DatabaseService
+public static class DatabaseService
 {
-    static MySqlConnection GetDbConnection()
+    private static MySqlConnection GetDbConnection()
     {
         var settings = Settings.Load();
         var cnn = new MySqlConnection(settings.DbConnectionString);
@@ -23,11 +22,10 @@ public class DatabaseService
 
         foreach (var train in trains)
         {
-            var sql =
-                "INSERT INTO train_stats (id, station_id, train_id, origin_station_id, destination_station_id, schedule_time, is_cancelled, estimated_time_departure, delay_time, train_arrived, train_departed, delay, track_current, track_original) " +
-                "VALUES (?id, ?station_id, ?train_id, ?origin_station_id, ?destination_station_id, ?schedule_time, ?is_cancelled, ?estimated_time_departure, ?delay_time, ?train_arrived, ?train_departed, ?delay, ?track_current, ?track_original) " +
-                "ON DUPLICATE KEY UPDATE station_id=?station_id, train_id=?train_id, origin_station_id=?origin_station_id, destination_station_id=?destination_station_id, schedule_time=?schedule_time, is_cancelled=?is_cancelled, " +
-                "estimated_time_departure=?estimated_time_departure, delay_time=?delay_time, train_arrived=?train_arrived, train_departed=?train_departed, delay=?delay, track_current=?track_current, track_original=?track_original";
+            const string sql = "INSERT INTO train_stats (id, station_id, train_id, origin_station_id, destination_station_id, schedule_time, is_cancelled, estimated_time_departure, delay_time, train_arrived, train_departed, delay, track_current, track_original) " +
+                               "VALUES (?id, ?station_id, ?train_id, ?origin_station_id, ?destination_station_id, ?schedule_time, ?is_cancelled, ?estimated_time_departure, ?delay_time, ?train_arrived, ?train_departed, ?delay, ?track_current, ?track_original) " +
+                               "ON DUPLICATE KEY UPDATE station_id=?station_id, train_id=?train_id, origin_station_id=?origin_station_id, destination_station_id=?destination_station_id, schedule_time=?schedule_time, is_cancelled=?is_cancelled, " +
+                               "estimated_time_departure=?estimated_time_departure, delay_time=?delay_time, train_arrived=?train_arrived, train_departed=?train_departed, delay=?delay, track_current=?track_current, track_original=?track_original";
 
             using var cmd = cnn.CreateCommand();
             cmd.CommandText = sql;
@@ -49,7 +47,7 @@ public class DatabaseService
         }
 
         cnn.Close();
-        return trains.Count();
+        return trains.Count;
     }
 
     public static string QueryDelays(string stationId)
@@ -58,18 +56,19 @@ public class DatabaseService
         sb.AppendLine("Forsinkede tog seneste 30 dage:");
         sb.AppendLine();
 
-        var sql =
-@"SELECT
-    destination_station_id as dest,
-    COUNT(*) as count_delayed,
-    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND destination_station_id = dest AND NOT is_cancelled) as count_dest_total,
-    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND NOT is_cancelled) as count_total,
-    IFNULL(AVG(TIME_TO_SEC(delay)), 0) as average_delay_seconds,
-    IFNULL(MAX(delay), '00:00:00') as max_delay
-FROM train_stats
-WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND delay > 0 AND NOT is_cancelled
-GROUP BY destination_station_id
-ORDER BY destination_station_id";
+        const string sql = """
+                           SELECT
+                               destination_station_id as dest,
+                               COUNT(*) as count_delayed,
+                               (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND destination_station_id = dest AND NOT is_cancelled) as count_dest_total,
+                               (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND NOT is_cancelled) as count_total,
+                               IFNULL(AVG(TIME_TO_SEC(delay)), 0) as average_delay_seconds,
+                               IFNULL(MAX(delay), '00:00:00') as max_delay
+                           FROM train_stats
+                           WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND delay > 0 AND NOT is_cancelled
+                           GROUP BY destination_station_id
+                           ORDER BY destination_station_id
+                           """;
 
         using var cnn = GetDbConnection();
         using var cmd = cnn.CreateCommand();
@@ -95,9 +94,9 @@ ORDER BY destination_station_id";
 
             if (totalForDestination != 0)
             {
-                var percent = (delayed * 100.0 / totalForDestination);
+                var percent = delayed * 100.0 / totalForDestination;
                 sb.AppendLine(
-                    $"Retning {destination,-3}: {delayed,3:N0} / {totalForDestination,4:N0} = {percent,5:N2}%, gns. {TimeSpan.FromSeconds(avg),5:m\\:ss}, max. {max,5:m\\:ss} minutter");
+                    $@"Retning {destination,-3}: {delayed,3:N0} / {totalForDestination,4:N0} = {percent,5:N2}%, gns. {TimeSpan.FromSeconds(avg),5:m\:ss}, max. {max,5:m\:ss} minutter");
             }
         }
 
@@ -106,7 +105,7 @@ ORDER BY destination_station_id";
 
         sb.AppendLine();
         sb.AppendLine(
-            $"I alt      : {sumDelayed,3:N0} / {total,4:N0} = {(sumDelayed * 100.0 / total),5:N2}%");
+            $"I alt      : {sumDelayed,3:N0} / {total,4:N0} = {sumDelayed * 100.0 / total,5:N2}%");
 
         return sb.ToString();
     }
@@ -117,16 +116,17 @@ ORDER BY destination_station_id";
         sb.AppendLine("Aflyste tog seneste 30 dage:");
         sb.AppendLine();
 
-        var sql =
-@"SELECT
-    destination_station_id as dest,
-    COUNT(*) as count_cancelled,
-    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND destination_station_id = dest) as count_dest_total,
-    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW()) as count_total
-FROM train_stats
-WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND is_cancelled
-GROUP BY destination_station_id
-ORDER BY destination_station_id";
+        const string sql = """
+                           SELECT
+                               destination_station_id as dest,
+                               COUNT(*) as count_cancelled,
+                               (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND destination_station_id = dest) as count_dest_total,
+                               (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW()) as count_total
+                           FROM train_stats
+                           WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND is_cancelled
+                           GROUP BY destination_station_id
+                           ORDER BY destination_station_id
+                           """;
 
         using var cnn = GetDbConnection();
         using var cmd = cnn.CreateCommand();
@@ -147,7 +147,7 @@ ORDER BY destination_station_id";
 
             if (totalForDestination != 0)
             {
-                var percent = (cancelled * 100.0 / totalForDestination);
+                var percent = cancelled * 100.0 / totalForDestination;
                 sb.AppendLine(
                     $"Retning {destination,-3}: {cancelled,3:N0} / {totalForDestination,4:N0} = {percent,5:N2}%");
             }
@@ -158,7 +158,7 @@ ORDER BY destination_station_id";
 
         sb.AppendLine();
         sb.AppendLine(
-            $"I alt      : {sumCancelled,3:N0} / {total,4:N0} = {(sumCancelled * 100.0 / total),5:N2}%");
+            $"I alt      : {sumCancelled,3:N0} / {total,4:N0} = {sumCancelled * 100.0 / total,5:N2}%");
 
         return sb.ToString();
     }
@@ -169,15 +169,16 @@ ORDER BY destination_station_id";
         sb.AppendLine("Sporfordeling seneste 30 dage:");
         sb.AppendLine();
 
-        var sql =
-@"SELECT
-	track_current,
-    COUNT(*) as count_trains,
-    (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND NOT is_cancelled) as count_total
-FROM train_stats
-WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW() AND NOT is_cancelled
-GROUP BY track_current
-ORDER BY track_current";
+        const string sql = """
+                           SELECT
+                           	track_current,
+                               COUNT(*) as count_trains,
+                               (SELECT COUNT(*) FROM train_stats WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND NOT is_cancelled) as count_total
+                           FROM train_stats
+                           WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW() AND NOT is_cancelled
+                           GROUP BY track_current
+                           ORDER BY track_current
+                           """;
 
         using var cnn = GetDbConnection();
         using var cmd = cnn.CreateCommand();
@@ -190,7 +191,7 @@ ORDER BY track_current";
             var track = reader.GetInt64("track_current");
             var count = reader.GetInt64("count_trains");
             var total = reader.GetInt64("count_total");
-            var percent = (count * 100.0 / total);
+            var percent = count * 100.0 / total;
 
             sb.AppendLine(
                 $"Spor {track}: {count,4:N0} ({percent,4:N1}%)");
@@ -208,15 +209,16 @@ ORDER BY track_current";
         sb.AppendLine("Sporfordeling seneste 30 dage (detaljeret):");
         sb.AppendLine();
 
-        var sql =
-@"SELECT
-	track_current,
-    destination_station_id,
-    COUNT(*) as count_trains
-FROM train_stats
-WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW() AND NOT is_cancelled
-GROUP BY track_current, destination_station_id
-ORDER BY track_current, destination_station_id";
+        const string sql = """
+                           SELECT
+                           	track_current,
+                               destination_station_id,
+                               COUNT(*) as count_trains
+                           FROM train_stats
+                           WHERE station_id = ?station_id AND (schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY)) AND schedule_time < NOW() AND NOT is_cancelled
+                           GROUP BY track_current, destination_station_id
+                           ORDER BY track_current, destination_station_id
+                           """;
 
         using var cnn = GetDbConnection();
         using var cmd = cnn.CreateCommand();
@@ -242,24 +244,26 @@ ORDER BY track_current, destination_station_id";
 
     public static string Install()
     {
-        var sql = @"CREATE TABLE train_stats (
-  id VARCHAR(25) NOT NULL,
-  station_id VARCHAR(5) NOT NULL,
-  train_id INT NOT NULL,
-  origin_station_id VARCHAR(5) NOT NULL,
-  destination_station_id VARCHAR(5) NOT NULL,
-  schedule_time DATETIME NOT NULL,
-  is_cancelled TINYINT NOT NULL,
-  estimated_time_departure DATETIME NULL,
-  delay_time DATETIME NULL,
-  train_arrived DATETIME NULL,
-  train_departed DATETIME NULL,
-  delay TIME NULL,
-  track_current INT NOT NULL,
-  track_original INT NULL,
-  PRIMARY KEY (id),
-  UNIQUE INDEX id_UNIQUE (id ASC),
-  INDEX idx_station_time (station_id ASC, schedule_time ASC) VISIBLE);";
+        const string sql = """
+                           CREATE TABLE train_stats (
+                             id VARCHAR(25) NOT NULL,
+                             station_id VARCHAR(5) NOT NULL,
+                             train_id INT NOT NULL,
+                             origin_station_id VARCHAR(5) NOT NULL,
+                             destination_station_id VARCHAR(5) NOT NULL,
+                             schedule_time DATETIME NOT NULL,
+                             is_cancelled TINYINT NOT NULL,
+                             estimated_time_departure DATETIME NULL,
+                             delay_time DATETIME NULL,
+                             train_arrived DATETIME NULL,
+                             train_departed DATETIME NULL,
+                             delay TIME NULL,
+                             track_current INT NOT NULL,
+                             track_original INT NULL,
+                             PRIMARY KEY (id),
+                             UNIQUE INDEX id_UNIQUE (id ASC),
+                             INDEX idx_station_time (station_id ASC, schedule_time ASC) VISIBLE);
+                           """;
 
         using var cnn = GetDbConnection();
         var cmd = cnn.CreateCommand();

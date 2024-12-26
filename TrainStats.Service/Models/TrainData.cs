@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using Newtonsoft.Json.Linq;
 
@@ -9,25 +8,25 @@ public class TrainData
     /// <summary>
     /// Unique id based on date and train id
     /// </summary>
-    public string Id { get; set; }
+    public string Id { get; }
 
-    public int TrainId { get; set; }
-    public string StationId { get; set; }
-    public DateTime ScheduleTime { get; set; }
-    public string OriginStationId { get; set; }
-    public string DestinationStationId { get; set; }
-    public bool IsCancelled { get; set; }
-    public DateTime? EstimatedTimeDeparture { get; set; }
-    public DateTime? DelayTime { get; set; }
-    public TimeSpan Delay { get; set; }
-    public int TrackCurrent { get; set; }
-    public int? TrackOriginal { get; set; }
-    public DateTime? TrainArrived { get; set; }
-    public DateTime? TrainDeparted { get; set; }
+    public int TrainId { get; }
+    public string StationId { get; }
+    public DateTime ScheduleTime { get; }
+    public string OriginStationId { get; }
+    public string DestinationStationId { get; }
+    public bool IsCancelled { get; }
+    public DateTime? EstimatedTimeDeparture { get; }
+    public DateTime? DelayTime { get; }
+    public TimeSpan Delay { get; }
+    public int TrackCurrent { get; }
+    public int? TrackOriginal { get; }
+    public DateTime? TrainArrived { get; }
+    public DateTime? TrainDeparted { get; }
 
     public TrainData(JToken jsonData, string stationId)
     {
-        TrainId = jsonData["TrainId"]!.Value<int>()!;
+        TrainId = jsonData["TrainId"]!.Value<int>();
         StationId = stationId;
         ScheduleTime = DateTime.ParseExact(
             jsonData["ScheduleTime"]!.Value<string>()!,
@@ -49,10 +48,10 @@ public class TrainData
             Delay = DelayTime == null ? TimeSpan.Zero : DelayTime.Value - ScheduleTime;
         }
 
-        TrackCurrent = jsonData["TrackCurrent"]!.Value<int>()!;
+        TrackCurrent = jsonData["TrackCurrent"]!.Value<int>();
         if (!string.IsNullOrEmpty(jsonData["TrackOriginal"]!.Value<string>()))
         {
-            TrackOriginal = jsonData["TrackOriginal"]!.Value<int>()!;
+            TrackOriginal = jsonData["TrackOriginal"]!.Value<int>();
         }
 
         TrainArrived = ParseJsonDateTime(jsonData["TrainArrived"]);
@@ -62,14 +61,9 @@ public class TrainData
         Id = $"{StationId}-{ScheduleTime:yyyyMMdd}-{TrainId}";
     }
 
-    DateTime? ParseJsonDateTime(JToken? token)
+    private static DateTime? ParseJsonDateTime(JToken? token)
     {
-        if (token == null)
-        {
-            return null;
-        }
-
-        var s = token.Value<string>();
+        var s = token?.Value<string>();
         if (s == null)
         {
             return null;

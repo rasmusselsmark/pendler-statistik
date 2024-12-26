@@ -1,8 +1,6 @@
-using System;
-using System.IO;
 using System.Text.Json;
 
-namespace TrainStats;
+namespace TrainStats.Service;
 
 public class Settings
 {
