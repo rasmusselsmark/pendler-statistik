@@ -15,7 +15,7 @@ public class TrainService
     {
         using var ws = new ClientWebSocket();
 
-        await ws.ConnectAsync(new Uri($"ws://labapiprod.dinstation.dk/api/ws/departure/{stationId}/"), CancellationToken.None);
+        await ws.ConnectAsync(new Uri($"wss://api.mittog.dk/api/ws/departure/{stationId}/dinstation/"), CancellationToken.None);
 
         var data = new byte[4096];
         var buffer = new ArraySegment<byte>(data);
