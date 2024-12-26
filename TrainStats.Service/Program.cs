@@ -7,7 +7,16 @@ var app = builder.Build();
 // app.UseDeveloperExceptionPage();
 // app.MapGet("/error", () => { throw new Exception("Error"); });
 
-app.MapGet("/", () => "Se https://github.com/rasmusselsmark/pendler-statistik for mere information");
+const string gitRepo = "https://github.com/rasmusselsmark/pendler-statistik";
+app.MapGet("/", () => Results.Content($"""
+<html>
+    <body>
+        <h2>Pendler Statistik</h2>
+        <p>Se <a href='{gitRepo}'>{gitRepo}</a> for mere information</p>
+    </body>
+</html>
+""", "text/html"));
+
 app.MapGet("/about", AboutService.About);
 app.MapGet("/install", DatabaseService.Install);
 
