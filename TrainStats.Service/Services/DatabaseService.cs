@@ -56,6 +56,7 @@ public static class DatabaseService
         sb.AppendLine("Forsinkede tog seneste 30 dage:");
         sb.AppendLine();
 
+        // only include delays above 2 mins ("delay >= 200")
         const string sql = """
                            SELECT
                                destination_station_id as dest,
@@ -65,7 +66,7 @@ public static class DatabaseService
                                IFNULL(AVG(TIME_TO_SEC(delay)), 0) as average_delay_seconds,
                                IFNULL(MAX(delay), '00:00:00') as max_delay
                            FROM train_stats
-                           WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND delay > 0 AND NOT is_cancelled
+                           WHERE station_id = ?station_id AND schedule_time > DATE_ADD(NOW(), INTERVAL -30 DAY) AND schedule_time < NOW() AND delay >= 200 AND NOT is_cancelled
                            GROUP BY destination_station_id
                            ORDER BY destination_station_id
                            """;
